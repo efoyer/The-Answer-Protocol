@@ -1,9 +1,10 @@
 package main
 
 import (
-	"io"
+	"bufio"
 	"log"
 	"net"
+	"fmt"
 )
 
 func main(){ // Point d’entrée du programme.
@@ -24,5 +25,12 @@ func main(){ // Point d’entrée du programme.
 
 func handleConnection(c net.Conn) {
 	defer c.Close()
-	io.Copy(c, c)
+	scan := bufio.NewScanner(c)
+	for scan.Scan() {
+		fmt.Println(scan.Text())
+	}
+	err := scan.Err()
+	if err != nil {
+		fmt.Println("Erreur: ", err)
+	}
 }
