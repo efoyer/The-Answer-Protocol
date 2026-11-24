@@ -19,6 +19,7 @@ func main(){ // Point d’entrée du programme.
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		go handleConnection(conn)
 	}
 }
@@ -26,11 +27,17 @@ func main(){ // Point d’entrée du programme.
 func handleConnection(c net.Conn) {
 	defer c.Close()
 	scan := bufio.NewScanner(c)
+	_, err := fmt.Fprintln( c, "OK hello proto=1")
+	if err != nil {
+		log.Print(err)
+		return
+	}
 	for scan.Scan() {
 		fmt.Println(scan.Text())
 	}
-	err := scan.Err()
+	err = scan.Err()
 	if err != nil {
 		fmt.Println("Erreur: ", err)
+		return
 	}
 }
