@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>RFC : The Answer Protocol – Protocole de communication MUD</title>
+<style>
+body { 
+    font-family: 'Times New Roman', serif; 
+    line-height: 1.6; 
+    max-width: 1000px; 
+    margin: auto; 
+    padding: 20px;
+    background-color: #fff;
+}
+h1 { 
+    text-align: center; 
+    color: #000; 
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+}
+h2 { 
+    color: #000; 
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+}
+h3 { color: #333; }
+.rfc-header {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+.rfc-header table {
+    width: 100%;
+    border: none;
+    margin: 20px 0;
+}
+.rfc-header td {
+    border: none;
+    padding: 5px;
+    vertical-align: top;
+}
+code { 
+    font-family: 'Courier New', monospace;
+    background-color: #f8f8f8; 
+    padding: 2px 4px; 
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+pre { 
+    font-family: 'Courier New', monospace;
+    background-color: #f8f8f8; 
+    padding: 15px; 
+    border: 1px solid #ddd;
+    border-radius: 5px; 
+    overflow-x: auto;
+    margin: 15px 0;
+}
+table { 
+    border-collapse: collapse; 
+    width: 100%; 
+    margin: 20px 0; 
+    border: 1px solid #000;
+}
+th, td { 
+    border: 1px solid #000; 
+    padding: 8px 12px; 
+    text-align: left; 
+}
+th { 
+    background-color: #f0f0f0; 
+    font-weight: bold;
+}
+.status-info {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 5px;
+}
+.toc {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 5px;
+}
+.toc ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+.toc li {
+    margin: 5px 0;
+}
+.section-number {
+    font-weight: bold;
+}
+.abnf {
+    background-color: #fff8dc;
+    border-left: 4px solid #daa520;
+    padding: 10px 15px;
+    margin: 15px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="rfc-header">
+<table>
+<tr>
+<td style="text-align: left;">Groupe de travail réseau</td>
+<td style="text-align: right;">Appel à commentaires (RFC) : 42TAP</td>
+</tr>
+<tr>
+<td style="text-align: left;">Catégorie : expérimentale</td>
+<td style="text-align: right;">École 42</td>
+</tr>
+<tr>
+<td style="text-align: left;"></td>
+<td style="text-align: right;">Décembre 2024</td>
+</tr>
+</table>
+</div>
+
+<h1>The Answer Protocol (TAP)<br>
+Un protocole de communication pour donjons multijoueurs (MUD) fondé sur TCP</h1>
+
+<div class="status-info">
+<h3>Statut de ce document</h3>
+<p>Ce document spécifie un protocole expérimental destiné à la communauté Internet. Ce protocole est expérimental et peut être amené à évoluer. La diffusion de ce document est illimitée.</p>
+</div>
+
+<div class="status-info">
+<h3>Mention de droits d’auteur</h3>
+<p>Copyright (C) 2024 École 42. Tous droits réservés.</p>
+</div>
+
+<div class="toc">
+<h3>Table des matières</h3>
+<ul>
+<li><span class="section-number">1.</span> Introduction</li>
+<li><span class="section-number">2.</span> Présentation du protocole</li>
+<li><span class="section-number">3.</span> Gestion des connexions</li>
+<li><span class="section-number">4.</span> Format des messages</li>
+<li><span class="section-number">5.</span> Spécifications des commandes</li>
+<li><span class="section-number">6.</span> Système d’événements</li>
+<li><span class="section-number">7.</span> Gestion des erreurs</li>
+<li><span class="section-number">8.</span> Gestion dynamique des ressources</li>
+<li><span class="section-number">9.</span> Considérations de sécurité</li>
+<li><span class="section-number">10.</span> Considérations relatives à l’IANA</li>
+<li><span class="section-number">11.</span> Références</li>
+<li><span class="section-number">12.</span> Coordonnées des auteurs</li>
+</ul>
+</div>
+
+<h2>1. Introduction</h2>
+
+<p>The Answer Protocol (TAP) est un protocole de couche application fondé sur TCP, conçu pour les environnements de donjons multijoueurs (MUD) en temps réel. Ce protocole permet à plusieurs clients de se connecter à un monde virtuel partagé dans lequel ils peuvent interagir avec l’environnement, communiquer avec d’autres joueurs et participer à un jeu collaboratif.</p>
+
+<p>TAP fournit une interface de commandes textuelle simple avec transmission asynchrone des événements, ce qui le rend adapté aux interfaces en ligne de commande comme aux interfaces graphiques. Le protocole privilégie la simplicité, l’extensibilité et les capacités d’interaction en temps réel.</p>
+
+<h3>1.1 Terminologie des exigences</h3>
+<p>Les mots-clés « MUST » (DOIT), « MUST NOT » (NE DOIT PAS), « REQUIRED » (OBLIGATOIRE), « SHALL » (DOIT), « SHALL NOT » (NE DOIT PAS), « SHOULD » (DEVRAIT), « SHOULD NOT » (NE DEVRAIT PAS), « RECOMMENDED » (RECOMMANDÉ), « MAY » (PEUT) et « OPTIONAL » (FACULTATIF) utilisés dans ce document doivent être interprétés conformément à la RFC 2119.</p>
+
+<h3>1.2 Terminologie</h3>
+<ul>
+<li><strong>Client :</strong> Une application qui se connecte à un serveur TAP</li>
+<li><strong>Serveur :</strong> L’implémentation du protocole TAP qui gère le monde virtuel</li>
+<li><strong>Joueur :</strong> Un client connecté dont l’identité est établie</li>
+<li><strong>Salle (Room) :</strong> Un lieu distinct dans le monde virtuel</li>
+<li><strong>Événement :</strong> Un message asynchrone envoyé par le serveur au client</li>
+<li><strong>Ressource :</strong> Un objet, un personnage non-joueur (PNJ, ou NPC en anglais) ou un autre élément interactif du monde</li>
+</ul>
+
+<h2>2. Présentation du protocole</h2>
+
+<p>TAP fonctionne sur des connexions TCP à l’aide de messages organisés en lignes et encodés en UTF-8. Chaque message se termine par un unique caractère de saut de ligne (0x0A). Le protocole suit un modèle hybride de requête-réponse avec transmission asynchrone des événements.</p>
+
+<h3>2.1 Caractéristiques du protocole</h3>
+<ul>
+<li><strong>Transport :</strong> TCP (Transmission Control Protocol, protocole de contrôle de transmission)</li>
+<li><strong>Encodage :</strong> UTF-8</li>
+<li><strong>Délimiteur de messages :</strong> Saut de ligne (LF, 0x0A)</li>
+<li><strong>Modèle de connexion :</strong> Connexions persistantes</li>
+<li><strong>Flux de messages :</strong> Bidirectionnel avec événements asynchrones</li>
+</ul>
+
+<h3>2.2 Machine à états du protocole</h3>
+<p>Les connexions TAP passent par les états suivants :</p>
+<ol>
+<li><strong>DISCONNECTED:</strong> Aucune connexion TCP établie</li>
+<li><strong>CONNECTED:</strong> Connexion TCP établie, en attente d’authentification</li>
+<li><strong>AUTHENTICATED:</strong> Identité du joueur établie, prêt à recevoir des commandes</li>
+<li><strong>TERMINATED:</strong> Connexion fermée proprement ou à la suite d’une erreur</li>
+</ol>
+
+<h2>3. Gestion des connexions</h2>
+
+<h3>3.1 Établissement de la connexion</h3>
+<p>Les clients DOIVENT établir une connexion TCP avec le serveur avant d’envoyer tout message TAP. Une fois la connexion TCP établie, le client DOIT envoyer une commande CONNECT pour établir l’identité du joueur.</p>
+
+<div class="abnf">
+<strong>Syntaxe ABNF :</strong><br>
+connection-sequence = tcp-connect connect-command<br>
+tcp-connect = ; Établissement standard de la connexion TCP en trois étapes<br>
+connect-command = "CONNECT" SP username CRLF
+</div>
+
+<h3>3.2 Message d’accueil initial</h3>
+<p>Une fois la connexion TCP établie, le serveur DOIT envoyer un message d’accueil initial pour indiquer la version du protocole :</p>
+
+<pre>
+Serveur → Client : OK hello proto=1
+</pre>
+
+<h3>3.3 Processus d’authentification</h3>
+<p>Après avoir reçu le message d’accueil, le client DOIT envoyer une commande CONNECT pour établir l’identité du joueur. Le serveur DOIT vérifier que le nom d’utilisateur demandé est unique parmi les connexions actives.</p>
+
+<pre>
+Serveur → Client : OK hello proto=1
+Client → Serveur : CONNECT alice
+Serveur → Client : OK connected
+</pre>
+
+<p>Si le nom d’utilisateur est déjà utilisé, le serveur DOIT répondre par une erreur :</p>
+
+<pre>
+Client → Serveur : CONNECT alice
+Serveur → Client : ERR 201 NAME_IN_USE
+</pre>
+
+<h3>3.3 Fermeture de la connexion</h3>
+<p>Les connexions PEUVENT être fermées proprement à l’aide de la commande QUIT ou brutalement en raison des conditions du réseau. Les serveurs DOIVENT gérer les deux situations et nettoyer correctement l’état du joueur.</p>
+
+<h2>4. Format des messages</h2>
+
+<h3>4.1 Structure générale des messages</h3>
+<p>Tous les messages TAP suivent un format uniforme :</p>
+
+<div class="abnf">
+<strong>Syntaxe ABNF :</strong><br>
+message = command-line / response-line / event-line<br>
+command-line = command-name [SP arguments] LF<br>
+response-line = ("OK" / error-response) [SP response-data] LF<br>
+event-line = "EVT" SP event-type SP event-data LF<br>
+command-name = 1*ALPHA<br>
+arguments = 1*VCHAR<br>
+error-response = "ERR" SP error-code SP error-message<br>
+error-code = 3DIGIT<br>
+event-type = 1*ALPHA<br>
+event-data = 1*VCHAR
+</div>
+
+<h3>4.2 Messages de commande</h3>
+<p>Les messages de commande sont envoyés du client au serveur et se composent d’un nom de commande suivi d’arguments facultatifs. Les noms de commande ne sont pas sensibles à la casse.</p>
+
+<h3>4.3 Messages de réponse</h3>
+<p>Les messages de réponse sont envoyés du serveur au client en réponse aux messages de commande. Les réponses commencent par « OK » en cas de succès ou « ERR » en cas d’échec.</p>
+
+<h3>4.4 Messages d’événement</h3>
+<p>Les messages d’événement sont des notifications asynchrones envoyées du serveur au client. Ils commencent par « EVT », suivi d’un type d’événement et des données associées.</p>
+
+<h2>5. Spécifications des commandes</h2>
+
+<h3>5.1 Commandes de base</h3>
+
+<h4>5.1.1 Commande CONNECT</h4>
+<p><strong>Syntaxe :</strong> <code>CONNECT &lt;username&gt;</code></p>
+<p><strong>Objectif :</strong> Établir l’identité du joueur pour la session</p>
+<p><strong>Réponses :</strong></p>
+<ul>
+<li><code>OK connected</code> - Authentification réussie</li>
+<li><code>ERR 201 NAME_IN_USE</code> - Nom d’utilisateur déjà utilisé</li>
+</ul>
+
+<h4>5.1.2 Commande LOOK</h4>
+<p><strong>Syntaxe :</strong> <code>LOOK</code></p>
+<p><strong>Objectif :</strong> Récupérer l’état de la salle actuelle au format JSON</p>
+<p><strong>Réponse :</strong> <code>OK &lt;json-data&gt;</code></p>
+<p><strong>Structure JSON :</strong></p>
+<pre>
+{
+  "room": {
+    "id": "room.identifier",
+    "name": "Room Display Name",
+    "description": "Room description text",
+    "exits": {
+      "north": "room.north_id",
+      "south": "room.south_id"
+    }
+  },
+  "players": ["username1", "username2"],
+  "items": ["item.id1", "item.id2"],
+  "npcs": ["npc.id1", "npc.id2"]
+}
+</pre>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : LOOK
+Serveur → Client : OK { "room": { "id": "loc.bakery", "name": "Village Bakery", "description": "A warm bakery filled with the scent of fresh bread.", "exits": {"south": "loc.square"} }, "players": ["alice"], "items": ["item.herbs"], "npcs": ["npc.baker"] }
+</pre>
+
+<h4>5.1.3 Commande MOVE</h4>
+<p><strong>Syntaxe :</strong> <code>MOVE &lt;direction&gt;</code></p>
+<p><strong>Objectif :</strong> Déplacer le joueur vers une salle adjacente</p>
+<p><strong>Réponses :</strong></p>
+<ul>
+<li><code>OK room=&lt;room-id&gt;</code> - Déplacement réussi</li>
+<li><code>ERR 301 NO_EXIT</code> - Direction invalide</li>
+</ul>
+
+<h4>5.1.4 Commande QUIT</h4>
+<p><strong>Syntaxe :</strong> <code>QUIT</code></p>
+<p><strong>Objectif :</strong> Fermer proprement la connexion</p>
+<p><strong>Réponse :</strong> <code>OK bye</code></p>
+
+<h3>5.2 Commandes de communication</h3>
+
+<h4>5.2.1 Commande CHAT</h4>
+<p><strong>Syntaxe :</strong> <code>CHAT &lt;scope&gt; &lt;message&gt;</code></p>
+<p><strong>Objectif :</strong> Envoyer un message de discussion à la portée indiquée</p>
+<p><strong>Portées :</strong> GLOBAL, ROOM, GROUP</p>
+<p><strong>Réponse :</strong> <code>OK</code></p>
+
+<h4>5.2.2 Commande WHO</h4>
+<p><strong>Syntaxe :</strong> <code>WHO</code></p>
+<p><strong>Objectif :</strong> Obtenir le nombre total de joueurs</p>
+<p><strong>Réponse :</strong> <code>OK players=&lt;count&gt;</code></p>
+
+<h3>5.3 Commandes de gestion des groupes</h3>
+
+<h4>5.3.1 Commande GROUP CREATE</h4>
+<p><strong>Syntaxe :</strong> <code>GROUP CREATE</code></p>
+<p><strong>Objectif :</strong> Créer un nouveau groupe de joueurs</p>
+<p><strong>Réponse :</strong> <code>OK group=&lt;group-id&gt;</code></p>
+
+<h4>5.3.2 Commande GROUP INVITE</h4>
+<p><strong>Syntaxe :</strong> <code>GROUP INVITE &lt;username&gt;</code></p>
+<p><strong>Objectif :</strong> Inviter un joueur dans le groupe actuel</p>
+<p><strong>Réponse :</strong> <code>OK</code></p>
+
+<h4>5.3.3 Commande GROUP JOIN</h4>
+<p><strong>Syntaxe :</strong> <code>GROUP JOIN &lt;leader-name&gt;</code></p>
+<p><strong>Objectif :</strong> Rejoindre un groupe existant</p>
+<p><strong>Réponse :</strong> <code>OK group=&lt;group-id&gt;</code></p>
+
+<h4>5.3.4 Commande GROUP LEAVE</h4>
+<p><strong>Syntaxe :</strong> <code>GROUP LEAVE</code></p>
+<p><strong>Objectif :</strong> Quitter le groupe actuel</p>
+<p><strong>Réponse :</strong> <code>OK</code></p>
+
+<h3>5.4 Commandes d’interaction avec les ressources</h3>
+
+<h4>5.4.1 Commande TAKE</h4>
+<p><strong>Syntaxe :</strong> <code>TAKE &lt;item-identifier&gt;</code></p>
+<p><strong>Objectif :</strong> Récupérer un objet dans la salle actuelle</p>
+<p><strong>Réponses :</strong></p>
+<ul>
+<li><code>OK taken=&lt;item-id&gt;</code> - Objet récupéré avec succès</li>
+<li><code>ERR 404 ITEM_NOT_FOUND</code> - Objet indisponible</li>
+</ul>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : LOOK
+Serveur → Client : OK { "room": { ... }, "items":["item.herbs"], ... }
+Client → Serveur : TAKE Herbs
+Serveur → Client : OK taken=item.herbs
+Client → Serveur : LOOK
+Serveur → Client : OK { "room": { ... }, "items":[], ... }
+</pre>
+
+<h4>5.4.2 Commande DROP</h4>
+<p><strong>Syntaxe :</strong> <code>DROP &lt;item-identifier&gt;</code></p>
+<p><strong>Objectif :</strong> Déposer un objet dans la salle actuelle</p>
+<p><strong>Réponses :</strong></p>
+<ul>
+<li><code>OK dropped=&lt;item-id&gt;</code> - Objet déposé avec succès</li>
+<li><code>ERR 404 ITEM_NOT_IN_INVENTORY</code> - Objet absent de l’inventaire</li>
+</ul>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : DROP item.herbs
+Serveur → Client : OK dropped=item.herbs
+Client → Serveur : LOOK
+Serveur → Client : OK { "room": { ... }, "items":["item.herbs"], ... }
+</pre>
+
+<h4>5.4.3 Commande INVENTORY</h4>
+<p><strong>Syntaxe :</strong> <code>INVENTORY</code></p>
+<p><strong>Objectif :</strong> Lister les objets actuellement détenus par le joueur sous forme de tableau JSON</p>
+<p><strong>Réponse :</strong> <code>OK [&lt;json-item-list&gt;]</code></p>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : INVENTORY
+Serveur → Client : OK ["item.herbs", "item.loaf_bread"]
+</pre>
+
+<h4>5.4.4 Commande TALK</h4>
+<p><strong>Syntaxe :</strong> <code>TALK &lt;npc-name&gt;</code></p>
+<p><strong>Objectif :</strong> Interagir avec un personnage non-joueur</p>
+<p><strong>Réponses :</strong></p>
+<ul>
+<li><code>OK &lt;dialogue&gt;</code> - Interaction réussie</li>
+<li><code>ERR 404 NPC_NOT_FOUND</code> - PNJ absent</li>
+</ul>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : TALK Baker
+Serveur → Client : OK Welcome to my bakery!
+</pre>
+
+<h4>5.4.5 Commande ATTACK</h4>
+<p><strong>Syntaxe :</strong> <code>ATTACK &lt;npc-name&gt;</code></p>
+<p><strong>Objectif :</strong> Engager un combat avec un PNJ ennemi</p>
+<p><strong>Réponses :</strong></p>
+<ul>
+<li><code>OK &lt;combat-result&gt;</code> - Attaque réussie, renvoie l’état du combat</li>
+<li><code>ERR 404 NPC_NOT_FOUND</code> - PNJ absent</li>
+<li><code>ERR 405 NPC_NOT_HOSTILE</code> - Le PNJ ne peut pas être attaqué</li>
+</ul>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : ATTACK goblin
+Serveur → Client : OK {"attacker_hp": 80, "target_hp": 15, "damage": 10, "status": "combat"}
+</pre>
+
+<h4>5.4.6 Commande STATUS</h4>
+<p><strong>Syntaxe :</strong> <code>STATUS</code></p>
+<p><strong>Objectif :</strong> Obtenir les points de vie actuels et l’état de combat du joueur</p>
+<p><strong>Réponse :</strong> <code>OK {"hp": &lt;current-hp&gt;, "max_hp": &lt;max-hp&gt;, "status": "&lt;status&gt;"}</code></p>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : STATUS
+Serveur → Client : OK {"hp": 80, "max_hp": 100, "status": "healthy"}
+</pre>
+
+<h4>5.4.7 Commande QUEST</h4>
+<p><strong>Syntaxe :</strong> <code>QUEST &lt;npc-name&gt;</code></p>
+<p><strong>Objectif :</strong> Demander une quête à un PNJ donneur de quêtes</p>
+<p><strong>Réponses :</strong></p>
+<ul>
+<li><code>OK &lt;quest-data&gt;</code> - Quête disponible, renvoie les informations de la quête</li>
+<li><code>ERR 404 NPC_NOT_FOUND</code> - PNJ absent</li>
+<li><code>ERR 406 NO_QUEST_AVAILABLE</code> - Le PNJ ne propose aucune quête ou la quête est déjà terminée</li>
+</ul>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : QUEST merchant
+Serveur → Client : OK {"quest_id": "fetch_herbs", "description": "Bring me 3 healing herbs", "reward": "gold_coin", "status": "available"}
+</pre>
+
+<h4>5.4.8 Commande QUESTS</h4>
+<p><strong>Syntaxe :</strong> <code>QUESTS</code></p>
+<p><strong>Objectif :</strong> Lister toutes les quêtes actives et terminées du joueur</p>
+<p><strong>Réponse :</strong> <code>OK &lt;quest-list&gt;</code></p>
+<p><strong>Exemple :</strong></p>
+<pre>
+Client → Serveur : QUESTS
+Serveur → Client : OK [{"quest_id": "fetch_herbs", "status": "active", "progress": "1/3"}, {"quest_id": "defeat_goblin", "status": "completed"}]
+</pre>
+
+<h2>6. Notes d’implémentation</h2>
+
+<div class="status-info">
+<h3>6.1 Travaux en cours</h3>
+<p><strong>IMPORTANT :</strong> Cette RFC laisse volontairement certains aspects insuffisamment spécifiés afin de permettre aux équipes de développement de faire preuve de créativité dans leur implémentation. Les domaines suivants nécessitent des choix de conception et leur justification :</p>
+
+<h4>6.1.1 Implémentation du système de combat</h4>
+<p>Bien que les commandes de base ATTACK et STATUS soient définies, les aspects suivants sont laissés à l’appréciation des équipes chargées de l’implémentation :</p>
+<ul>
+<li><strong>Mécaniques de tour par tour :</strong> Gestion des tours, ordre d’initiative et gestion du temps</li>
+<li><strong>Calcul des dégâts :</strong> Formules de dégâts d’attaque, de défense et de coups critiques</li>
+<li><strong>États de combat :</strong> Début et fin du combat, et transitions entre les états</li>
+<li><strong>Commandes supplémentaires :</strong> DEFEND, FLEE, USE_ITEM ou autres actions propres au combat</li>
+<li><strong>Effets de statut :</strong> Poison, effets bénéfiques et néfastes, et gestion de leur durée</li>
+</ul>
+
+<h4>6.1.2 Implémentation du système de quêtes</h4>
+<p>Les commandes de base QUEST et QUESTS sont fournies, mais les équipes chargées de l’implémentation doivent concevoir les éléments suivants :</p>
+<ul>
+<li><strong>Progression des quêtes :</strong> Suivi et validation des objectifs de quête</li>
+<li><strong>Achèvement des quêtes :</strong> Mécanismes d’achèvement automatique ou manuel</li>
+<li><strong>Récompenses des quêtes :</strong> Distribution et gestion de l’inventaire</li>
+<li><strong>Dépendances entre les quêtes :</strong> Prérequis et chaînes de quêtes</li>
+<li><strong>Commandes supplémentaires :</strong> COMPLETE_QUEST, ABANDON_QUEST ou commandes similaires</li>
+</ul>
+
+<p><strong>Les équipes chargées de l’implémentation DOIVENT documenter leurs choix de conception et justifier l’implémentation de leurs systèmes de combat et de quêtes dans le fichier README de leur projet.</strong></p>
+</div>
+
+<h2>7. Système d’événements</h2>
+
+<h3>7.1 Format des messages d’événement</h3>
+<p>Les événements sont des messages asynchrones qui informent les clients des changements d’état du monde. Tous les événements suivent le format suivant :</p>
+
+<pre>EVT &lt;category&gt; &lt;type&gt; &lt;data&gt;</pre>
+
+<h3>6.2 Catégories d’événements</h3>
+
+<h4>6.2.1 Événements ROOM</h4>
+<table>
+<tr><th>Type d’événement</th><th>Format</th><th>Description</th></tr>
+<tr><td>PRESENCE ENTER</td><td>EVT ROOM PRESENCE ENTER &lt;username&gt;</td><td>Un joueur est entré dans la salle actuelle</td></tr>
+<tr><td>PRESENCE LEAVE</td><td>EVT ROOM PRESENCE LEAVE &lt;username&gt;</td><td>Un joueur a quitté la salle actuelle</td></tr>
+<tr><td>CHAT</td><td>EVT ROOM CHAT &lt;username&gt; &lt;message&gt;</td><td>Message de discussion limité à la salle</td></tr>
+</table>
+
+<h4>6.2.2 Événements GLOBAL</h4>
+<table>
+<tr><th>Type d’événement</th><th>Format</th><th>Description</th></tr>
+<tr><td>CHAT</td><td>EVT GLOBAL CHAT &lt;username&gt; &lt;message&gt;</td><td>Message de discussion diffusé à l’ensemble du serveur</td></tr>
+</table>
+
+<h4>6.2.3 Événements GROUP</h4>
+<table>
+<tr><th>Type d’événement</th><th>Format</th><th>Description</th></tr>
+<tr><td>INVITE</td><td>EVT GROUP INVITE &lt;leader&gt;</td><td>Invitation à un groupe reçue</td></tr>
+<tr><td>JOIN</td><td>EVT GROUP JOIN &lt;username&gt;</td><td>Un joueur a rejoint le groupe</td></tr>
+<tr><td>LEAVE</td><td>EVT GROUP LEAVE &lt;username&gt;</td><td>Un joueur a quitté le groupe</td></tr>
+<tr><td>CHAT</td><td>EVT GROUP CHAT &lt;username&gt; &lt;message&gt;</td><td>Message de discussion limité au groupe</td></tr>
+</table>
+
+<h4>6.2.4 Événements STATS</h4>
+<table>
+<tr><th>Type d’événement</th><th>Format</th><th>Description</th></tr>
+<tr><td>PLAYERS</td><td>EVT STATS players=&lt;count&gt;</td><td>Nombre de joueurs mis à jour</td></tr>
+</table>
+
+<h2>8. Gestion des erreurs</h2>
+
+<h3>8.1 Format des réponses d’erreur</h3>
+<p>Les réponses d’erreur suivent le format suivant :</p>
+<pre>ERR &lt;code&gt; &lt;message&gt;</pre>
+
+<h3>8.2 Codes d’erreur standard</h3>
+<table>
+<tr><th>Code</th><th>Message</th><th>Description</th></tr>
+<tr><td>201</td><td>NAME_IN_USE</td><td>Le nom d’utilisateur demandé est déjà utilisé</td></tr>
+<tr><td>301</td><td>NO_EXIT</td><td>Direction de déplacement invalide</td></tr>
+<tr><td>401</td><td>NOT_IN_GROUP</td><td>L’opération de groupe nécessite d’être membre d’un groupe</td></tr>
+<tr><td>402</td><td>ALREADY_IN_GROUP</td><td>Le joueur appartient déjà à un groupe</td></tr>
+<tr><td>404</td><td>ITEM_NOT_FOUND</td><td>L’objet demandé n’est pas disponible dans la salle</td></tr>
+<tr><td>404</td><td>ITEM_NOT_IN_INVENTORY</td><td>L’objet demandé ne se trouve pas dans l’inventaire du joueur</td></tr>
+<tr><td>404</td><td>NPC_NOT_FOUND</td><td>Le PNJ demandé n’est pas présent dans la salle</td></tr>
+<tr><td>405</td><td>NPC_NOT_HOSTILE</td><td>Le PNJ ne peut pas être attaqué (ce n’est pas un ennemi)</td></tr>
+<tr><td>406</td><td>NO_QUEST_AVAILABLE</td><td>Le PNJ ne propose aucune quête ou la quête est déjà terminée</td></tr>
+<tr><td>900</td><td>CONNECTION_FAILED</td><td>Échec de l’établissement de la connexion</td></tr>
+<tr><td>901</td><td>SEND_FAILED</td><td>Échec de la transmission du message</td></tr>
+</table>
+
+<h3>7.3 Récupération après erreur</h3>
+<p>Les clients DEVRAIENT mettre en œuvre des mécanismes appropriés de récupération après erreur. Les erreurs non fatales (codes 4xx) permettent de poursuivre le fonctionnement, tandis que les erreurs système (codes 9xx) peuvent nécessiter de rétablir la connexion.</p>
+
+<h2>8. Gestion dynamique des ressources</h2>
+
+<h3>8.1 Unicité des ressources</h3>
+<p>TAP met en œuvre un système de gestion dynamique des ressources dans lequel les objets existent sous forme d’instances uniques dans le monde virtuel. Ce système empêche la duplication des ressources et garantit la cohérence de l’état du monde.</p>
+
+<h3>8.2 Cycle de vie des objets</h3>
+<ol>
+<li><strong>Apparu (Spawned) :</strong> L’objet se trouve dans une salle et peut être récupéré</li>
+<li><strong>Détenu (Held) :</strong> L’objet se trouve dans l’inventaire d’un joueur</li>
+<li><strong>Déposé (Dropped) :</strong> L’objet est déposé à nouveau dans une salle</li>
+</ol>
+
+<h3>8.3 Identification des ressources</h3>
+<p>Les ressources PEUVENT être identifiées de l’une des manières suivantes :</p>
+<ul>
+<li><strong>Identifiant canonique :</strong> Identifiant unique (par exemple, « item.healing_potion »)</li>
+<li><strong>Nom d’affichage :</strong> Nom lisible par un humain (par exemple, « Healing Potion », potion de soin)</li>
+</ul>
+
+<h3>8.4 Noms de ressources composés de plusieurs mots</h3>
+<p>Le protocole prend en charge les noms de ressources composés de plusieurs mots. Les clients DEVRAIENT gérer correctement les noms contenant des espaces dans leurs interfaces utilisateur.</p>
+
+<h2>9. Considérations de sécurité</h2>
+
+<h3>9.1 Authentification</h3>
+<p>TAP fournit une authentification minimale fondée sur l’unicité des noms d’utilisateur. Les implémentations nécessitant une sécurité renforcée DEVRAIENT mettre en œuvre des mécanismes d’authentification supplémentaires.</p>
+
+<h3>9.2 Gestion du protocole réseau</h3>
+<p>Les implémentations de TAP DOIVENT gérer correctement les caractéristiques des flux TCP :</p>
+<ul>
+<li><strong>Fragmentation des messages :</strong> Les commandes peuvent être réparties sur plusieurs paquets TCP. Les serveurs DOIVENT conserver les messages incomplets dans un tampon jusqu’à la réception d’une ligne complète.</li>
+<li><strong>Regroupement des messages :</strong> Plusieurs commandes peuvent arriver dans un seul paquet TCP. Les serveurs DOIVENT traiter séparément chaque message terminé par un saut de ligne.</li>
+<li><strong>Encodage :</strong> Tous les messages DOIVENT utiliser l’encodage UTF-8. Les serveurs DOIVENT gérer les caractères Unicode dans les noms d’utilisateur et les messages sans erreur d’encodage.</li>
+<li><strong>Caractères de contrôle :</strong> Les serveurs DEVRAIENT rejeter les caractères de contrôle dans les messages ou les traiter de manière sûre afin de prévenir les attaques par manipulation du terminal.</li>
+</ul>
+
+<h3>9.3 Validation des entrées</h3>
+<p>Les serveurs DOIVENT valider toutes les entrées des clients afin de prévenir les attaques par injection et de garantir le respect du protocole. Les messages mal formés DEVRAIENT entraîner des réponses d’erreur appropriées.</p>
+
+<h3>9.4 Limites de ressources</h3>
+<p>Les implémentations DEVRAIENT imposer des limites raisonnables concernant :</p>
+<ul>
+<li>La longueur des messages (recommandation : 1024 octets par ligne)</li>
+<li>Le nombre de connexions</li>
+<li>L’acquisition de ressources par joueur</li>
+<li>La fréquence des messages de discussion</li>
+</ul>
+
+<h2>10. Considérations relatives à l’IANA</h2>
+
+<p>Ce document ne nécessite aucune action de la part de l’IANA. TAP est un protocole expérimental destiné à des fins pédagogiques et de développement.</p>
+
+<h2>11. Références</h2>
+
+<h3>11.1 Références normatives</h3>
+<ul>
+<li>[RFC2119] Bradner, S., « Key words for use in RFCs to Indicate Requirement Levels » (Mots-clés utilisés dans les RFC pour indiquer les niveaux d’exigence), BCP 14, RFC 2119, mars 1997.</li>
+<li>[RFC5234] Crocker, D. et P. Overell, « Augmented BNF for Syntax Specifications: ABNF » (BNF augmentée pour les spécifications syntaxiques : ABNF), STD 68, RFC 5234, janvier 2008.</li>
+</ul>
+
+<h3>11.2 Références informatives</h3>
+<ul>
+<li>[RFC793] Postel, J., « Transmission Control Protocol » (Protocole de contrôle de transmission), STD 7, RFC 793, septembre 1981.</li>
+<li>[RFC3629] Yergeau, F., « UTF-8, a transformation format of ISO 10646 » (UTF-8, un format de transformation de l’ISO 10646), STD 63, RFC 3629, novembre 2003.</li>
+</ul>
+
+<h2>12. Coordonnées des auteurs</h2>
+
+<pre>
+Groupe de travail réseau de l’École 42
+Courriel : pedago@42.fr
+
+Les questions concernant ce document peuvent être adressées aux auteurs.
+</pre>
+
+<hr>
+<p style="text-align: center; color: #666;">
+Ce document expire six mois après sa date de publication.
+</p>
+
+</body>
+</html>
