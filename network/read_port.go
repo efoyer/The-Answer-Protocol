@@ -14,6 +14,7 @@ func main(){ // Point d’entrée du programme.
 		log.Fatal(err)
 	}
 	defer ln.Close() // Ferme l’écoute quand main se termine.
+	register_name := make(map[string]bool)
 	for { // Répète sans limite pour accepter de nouveaux clients.
 		// Attend un client et récupère sa connexion.
 		conn, err := ln.Accept()
@@ -21,11 +22,11 @@ func main(){ // Point d’entrée du programme.
 			log.Fatal(err)
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, register_name)
 	}
 }
 
-func handleConnection(c net.Conn) {
+func handleConnection(c net.Conn, reg map[string]bool) {
 	defer c.Close()
 	scan := bufio.NewScanner(c)
 	_, err := fmt.Fprintln( c, "OK hello proto=1")
@@ -34,6 +35,13 @@ func handleConnection(c net.Conn) {
 		return
 	}
 	name := ""
+	// Assure le netoyage du registre en cas de KeyInterrupt
+	defer func(){
+		if name != ""{
+			delete(reg, name)
+		}
+	}()
+
 	for scan.Scan(){
 		ln := scan.Text()
 		command, other, _ := strings.Cut(ln, " ")
@@ -51,10 +59,13 @@ func handleConnection(c net.Conn) {
 				val = "OK bye"
 				leave = true
 			case "CONNECT":
-				n, err := connectCommand(other)
+				n, err := connectCommand(other, reg)
 				if err != nil {
 					val = err.Error()
 					break
+				}
+				if name != ""{
+					delete(reg, name)
 				}
 				name = n
 				val = "OK connected"
@@ -121,13 +132,16 @@ func handleConnection(c net.Conn) {
 	}
 }
 
-func connectCommand(name string) (string, error) {
+func connectCommand(name string, reg map[string]bool) (string, error) {
 	word := strings.Fields(name)
 	if len(word) > 1 {
 		return "", fmt.Errorf("There are too many arguments")
 	} else if len(word) == 0{
 		return "", fmt.Errorf("Empty name")
+	}else if val, ok := reg[word[0]]; ok && val{
+		return "", fmt.Errorf("ERR 201 NAME_IN_USE")
 	} else {
+		reg[word[0]] = true
 		return word[0], nil
 	}
 }
